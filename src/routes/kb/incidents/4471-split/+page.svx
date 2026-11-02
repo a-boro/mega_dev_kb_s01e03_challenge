@@ -1,8 +1,8 @@
 ---
 layout: runbook
-title: '#4471 · three problems, not one'
+title: '#4471 · two problems, not one'
 owner: Adrian Borowski
-status: proposed
+status: closed
 reviewed: 2026-11-02
 signature: v1.eyJzdWIiOiIyOTMxIiwiYXVkIjoiY2hhbGxlbmdlOndoYXQtaXQtc2hvd3MiLCJpYXQiOjE3OTM2Mzg4MDEsImV4cCI6MTc5MzcyNTIwMX0.iY7m9o5bhN1Y-nyXMylO_kLJRrc6DIJe9QEmOQSIdJY
 ---
@@ -14,13 +14,13 @@ signature: v1.eyJzdWIiOiIyOTMxIiwiYXVkIjoiY2hhbGxlbmdlOndoYXQtaXQtc2hvd3MiLCJpYX
   const signature = 'v1.eyJzdWIiOiIyOTMxIiwiYXVkIjoiY2hhbGxlbmdlOndoYXQtaXQtc2hvd3MiLCJpYXQiOjE3OTM2Mzg4MDEsImV4cCI6MTc5MzcyNTIwMX0.iY7m9o5bhN1Y-nyXMylO_kLJRrc6DIJe9QEmOQSIdJY';
 </script>
 
-[#4471](/kb/incidents/4471) says one issue, one fix queued. The reports say otherwise. Every report
-is about a date on the wrong day, but they hold three different problems. One fix closes only the
-first.
+[#4471](/kb/incidents/4471) was merged as one issue with one fix queued. The reports hold **two**
+problems. Every report is about a date on the wrong day, but they have different causes and
+different fixes. One fix closes only the first.
 
 <Callout kind="warn">
-The queued fix (the shared parser) will not close every report in #4471. Two problems have no
-ticket of their own until the tickets below are filed.
+The parser fix does not close every report in #4471. The 33 form reports on the booking-v3 form
+have a different cause.
 </Callout>
 
 ## The split
@@ -29,29 +29,34 @@ ticket of their own until the tickets below are filed.
 
 The counts above are computed from the export at render time, not typed.
 
-## The three problems
+## The two problems
 
 **`parser`: the shared parser reads every date month first.** A tenant whose locale writes the
-day first gets its dates flipped. This is what #4471 is about, and the queued fix covers it. It
-is the large majority of the reports, reported through the app, email and the form on `booking-v2`.
+day first gets its dates flipped. This is what #4471 is about, and it is the large majority of the
+reports, reported through the app, email and the form on `booking-v2`. Ticket: [#1](https://github.com/a-boro/mega_dev_kb_s01e03_challenge/issues/1).
 
-**`hint`: the `booking-v3` form tells people to type `MM/DD/YYYY`.** Three tenants run that
-form (`alder.physio`, `copper.studio`, `pale.harbour`) and all three write the day first. Their
-people type what the hint says, month first, and the form reads it the tenant's way. Only reports
-that came through the form on those tenants belong here. A parser fix does not change what the
-hint tells people to type. Fixing the parser alone will leave these reports open.
+**`hint`: the `booking-v3` form tells people to type `MM/DD/YYYY`.** Three tenants run that form
+(`alder.physio`, `copper.studio`, `pale.harbour`) and all three write the day first. Their people
+type what the hint says, month first, and the form reads it the tenant's way. Only reports that
+came through the form on those tenants belong here. A parser fix does not change what the hint
+tells people to type. Ticket: [#2](https://github.com/a-boro/mega_dev_kb_s01e03_challenge/issues/2).
 
-**`clock`: the invite moves by one day, not by a flipped month.** The reports describe a
-weekday that is off by one (Tuesday became Monday), an invite that arrived before the booking
-was made, and the same meeting landing on different days for Lisbon and Toronto. That points at
-time zones or a date boundary, not at day and month order. The desk already marked these reports
-as "read as a one-day move" in `desk-notes.json`, and filed them under `parser` anyway. The cause
-is still a guess: this ticket needs an engineer to look.
+Five of the `parser` reports read as a one-day move (a weekday off by one, an invite before the
+booking, Lisbon and Toronto getting different days for one meeting). The desk filed them under
+`parser` by tenant, in `desk-notes.json`, and the table counts them there. A time-zone cause is
+possible, not confirmed. The evidence is kept in [#3](https://github.com/a-boro/mega_dev_kb_s01e03_challenge/issues/3).
+
+## What engineering decided
+
+Engineering closed #4471 on 5 October:
+
+- `parser`: **fixed**, `fix(dates): parse dd/mm for eu locales`. Ticket #1 is closed as completed.
+- `hint`: **won't fix**, the booking-v3 form is retired. Ticket #2 is closed as not planned.
 
 ## Why they were merged
 
 [Decision 0001](/kb/decisions/0001-dedupe-by-subject) merges on the subject line alone. Subjects
-here are generic ("Wrong day on the invite", "Date is wrong"), so all three problems share them.
+here are generic ("Wrong day on the invite", "Date is wrong"), so both problems share them.
 Intake does not help either: its tag guesses from the reporter's browser and not from the
 tenant, so it disagrees with the cause for a large part of the reports. The cause depends on the
 tenant (the locale it writes dates in, and the booking form it runs), as
@@ -61,10 +66,9 @@ already does.
 The export also repeats some reports: its pages overlap, so a report can come twice. The counts
 here use one row per id.
 
-## What to do
+## What to do next time
 
-- Keep #4471 for `parser` and let the queued fix close it ([ticket 1](https://github.com/a-boro/mega_dev_kb_s01e03_challenge/issues/1)).
-- `hint` has its own ticket ([ticket 2](https://github.com/a-boro/mega_dev_kb_s01e03_challenge/issues/2)), and so does `clock` ([ticket 3](https://github.com/a-boro/mega_dev_kb_s01e03_challenge/issues/3)).
-- Count reports per cause, not per subject, when you merge the next big incident.
+- Count reports per cause, not per subject, when you merge a big incident.
+- Check a merged ticket against the tenant's locale and form before you mark it known.
 
 <RenderStamp {signature} />

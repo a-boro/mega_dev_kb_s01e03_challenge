@@ -1,39 +1,51 @@
 <script lang="ts">
   import reports from '#lib/data/reports-4471.json';
   import notes from '#lib/data/desk-notes.json';
-  import { uniqueById, type Report } from '#lib/kb/causes';
+  import { groupByCause, readAs, uniqueById, type Report } from '#lib/kb/causes';
   import { tenantOf } from '#lib/kb/locales';
-  import { splitTicket } from '#lib/kb/split';
 
   let { ticket }: { ticket: number } = $props();
 
   const exported = (reports as Report[]).length;
-  const merged = $derived(uniqueById(reports as Report[]).filter((r) => r.mergedInto === ticket).length);
-  const splits = $derived(splitTicket(reports as Report[], ticket, tenantOf, notes.oneDayMove));
-  const placed = $derived(splits.reduce((n, s) => n + s.reports.length, 0));
+  const merged = $derived(uniqueById(reports as Report[]).filter((r) => r.mergedInto === ticket));
+  const groups = $derived(groupByCause(merged, tenantOf));
 
-  const NAME = { parser: 'parser reads day-first dates month-first', hint: 'booking-v3 form hint says MM/DD/YYYY', clock: 'invites move by one day' };
+  const NAME: Record<string, string> = {
+    parser: 'the shared parser reads day-first dates month-first',
+    hint: 'the booking-v3 form hint says MM/DD/YYYY',
+  };
+  // What engineering did with each cause when it closed the ticket.
+  const DESK: Record<string, string> = { parser: 'fixed', hint: "won't fix, form retired" };
 </script>
 
 <p class="sum">
-  <strong>{merged}</strong> reports merged into #{ticket} ({exported} rows exported, {exported - merged} repeated ids) ·
-  <strong>{splits.length}</strong> problems · <strong>{placed}</strong> placed
+  <strong>{merged.length}</strong> reports merged into #{ticket} ({exported} rows exported, {exported - merged.length} repeated ids) ·
+  <strong>{groups.length}</strong> problems
 </p>
 
 <table>
-  <thead><tr><th>problem</th><th>reports</th><th>tenants</th><th>seen</th></tr></thead>
+  <thead><tr><th>problem</th><th>reports</th><th>tenants</th><th>seen</th><th>desk</th></tr></thead>
   <tbody>
-    {#each splits as s (s.problem)}
+    {#each groups as g (g.cause)}
       <tr>
-        <td><code>{s.problem}</code> · {NAME[s.problem]}</td>
-        <td>{s.reports.length}</td>
-        <td>{s.tenants.length}</td>
-        <td>{s.firstSeen} → {s.lastSeen}</td>
+        <td><code>{g.cause}</code> · {NAME[g.cause] ?? 'unplaced'}</td>
+        <td>{g.reports.length}</td>
+        <td>{g.tenants}</td>
+        <td>{g.firstSeen} → {g.lastSeen}</td>
+        <td>{DESK[g.cause] ?? ''}</td>
       </tr>
     {/each}
   </tbody>
 </table>
 
+{#each groups as g (g.cause)}
+  {@const moved = readAs(g, notes.oneDayMove)}
+  {#if moved}
+    <p class="note">{moved} of the {g.reports.length} <code>{g.cause}</code> reports read as a one-day move; filed under <code>{g.cause}</code> by tenant.</p>
+  {/if}
+{/each}
+
 <style>
   .sum { font-size: 1.05rem; }
+  .note { color: var(--muted); font-size: 0.85em; }
 </style>
